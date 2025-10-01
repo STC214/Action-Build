@@ -528,16 +528,44 @@ jobs:
           grep "KSU_VERSION_FULL" kernel/Makefile
           echo "::endgroup::"
 
+      # - name: Apply Patches SukiSU Ultra
+      #   run: |
+      #     cd kernel_workspace
+      #     git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
+      #     git clone https://github.com/ShirkNeko/SukiSU_patch.git
+      #     cd kernel_platform
+      #     echo "正在拉取susfs补丁"
+      #     cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
+      #     cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
+      #     cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+
       - name: Apply Patches SukiSU Ultra
         run: |
           cd kernel_workspace
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
+          echo "=== 应用 SUSFS4KSU 补丁修复 ==="
+          
+          # 使用修复版本的 susfs4ksu 替代有问题的版本
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b gki-android14-6.1 susfs4ksu_fixed
+          cd susfs4ksu_fixed
+          git checkout 0e19a05277d28182c7b653580117145c53e69e92
+          cd ..
+          
+          echo "修复版本信息:"
+          cd susfs4ksu_fixed
+          git log --oneline -1
+          cd ..
+          
+          # 继续原有的流程
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
           cd kernel_platform
           echo "正在拉取susfs补丁"
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
+          
+          # 使用修复版本的补丁文件
+          cp ../susfs4ksu_fixed/kernel_patches/50_add_susfs_in_gki-${{ env.KANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/ 2>/dev/null || echo "使用修复版本的补丁文件"
+          cp ../susfs4ksu_fixed/kernel_patches/fs/* ./common/fs/ 2>/dev/null || true
+          cp ../susfs4ksu_fixed/kernel_patches/include/linux/* ./common/include/linux/ 2>/dev/null || true
+          
+          echo "=== SUSFS4KSU 修复应用完成 ==="
 
           if [ "${{ github.event.inputs.ZRAM }}" = "true" ]; then
             echo "正在拉取zram补丁"
